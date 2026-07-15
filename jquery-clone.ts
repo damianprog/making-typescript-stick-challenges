@@ -43,7 +43,7 @@ interface AjaxProps {
 }
 
 namespace $ {
-  export async function ajax(ajaxProps: AjaxProps): void {
+  export async function ajax(ajaxProps: AjaxProps): Promise<void> {
     const response = await fetch(ajaxProps.url);
 
     if (!response.ok) {
@@ -51,6 +51,8 @@ namespace $ {
     }
 
     const result: ResponseData = await response.json();
+
+    ajaxProps.success(result);
   }
 }
 
