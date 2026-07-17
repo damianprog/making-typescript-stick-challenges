@@ -1,22 +1,23 @@
-import fetch from "node-fetch";
-
 class FunctionableElement {
-  element: HTMLElement;
+  #element: HTMLElement;
 
   constructor(element: HTMLElement) {
-    this.element = element;
+    this.#element = element;
   }
 
-  html(text: string) {
-    this.element.innerText = text;
+  html(text: string): this {
+    this.#element.innerHTML = text;
+    return this;
   }
 
-  show() {
-    this.element.style.visibility = "visible";
+  show(): this {
+    this.#element.style.visibility = "visible";
+    return this;
   }
 
-  on(eventName: string, callback: (...args: any[]) => void) {
-    this.element.addEventListener(eventName, callback);
+  on(eventName: string, callback: (event: Event) => void): this {
+    this.#element.addEventListener(eventName, callback);
+    return this;
   }
 }
 
