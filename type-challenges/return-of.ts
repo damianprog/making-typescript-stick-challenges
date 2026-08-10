@@ -10,14 +10,41 @@ type NotEqual<X, Y> = true extends Equal<X, Y> ? false : true;
 // ---cut---
 
 // Implement this type
-type ReturnOf<F> = F extends (...args: any[]) => {} ? true : never;
+type ReturnOf<F extends (...args: any[]) => any> = F extends (
+  ...args: any[]
+) => infer R
+  ? R
+  : never;
+
+// here should be void
+type p = ReturnOf<(typeof Promise)["resolve"]>;
+
+// type Test1 = (() => void) extends (...args: any[]) => {} ? true : false;
+// type Test2 = (() => void) extends (...args: any[]) => any ? true : false;
+
+// type Z = number extends {} ? true : false;
+// type X = string extends {} ? true : false;
+// type P = boolean extends {} ? true : false;
+// type D = null extends {} ? true : false;
+// type E = undefined extends {} ? true : false;
+// type G = void extends {} ? true : false;
+
+type ReturnsOfAll<T extends Record<string, (...args: any[]) => any>> = {
+  [K in keyof T]: ReturnOf<T[K]>;
+};
+
+type API = {
+  getUser: () => { id: number };
+  getPosts: () => string[];
+};
+
+type R = ReturnsOfAll<API>;
 
 type A = (() => void) extends () => {} ? true : false;
 type B = (() => undefined) extends () => {} ? true : false;
 type C = (() => null) extends () => {} ? true : false;
 
-// here should be void
-const p: ReturnOf<(typeof Promise)["resolve"]>;
+// const p: ReturnType<(typeof Promise)["resolve"]>;
 
 // Tests
 
