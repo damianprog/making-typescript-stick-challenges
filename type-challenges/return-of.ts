@@ -16,6 +16,9 @@ type ReturnOf<F extends (...args: any[]) => any> = F extends (
   ? R
   : never;
 
+// Mike solution
+// type ReturnOf<F> = F extends { (...arg: any[]): infer RT } ? RT : never;
+
 // here should be void
 type p = ReturnOf<(typeof Promise)["resolve"]>;
 
