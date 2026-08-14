@@ -19,6 +19,17 @@ type ReturnOf<F extends (...args: any[]) => any> = F extends (
 // here should be void
 type p = ReturnOf<(typeof Promise)["resolve"]>;
 
+interface Over {
+  (): string;
+  (x: number): boolean;
+}
+type Got = ReturnOf<Over>;
+
+/*
+  With infer on overloaded type TS takes the last matching signature.
+  Above on type Got we got boolean so the last matching signature.
+*/
+
 // type Test1 = (() => void) extends (...args: any[]) => {} ? true : false;
 // type Test2 = (() => void) extends (...args: any[]) => any ? true : false;
 
