@@ -460,3 +460,170 @@ _Odpowiedz z głowy, potem sprawdź w edytorze._
 8. Co to „propagacja constraintu" i dlaczego `ReturnType` mimo niej ma constraint?
 
 **Powtórki:** 1 dzień → 1 tydzień → 1 miesiąc.
+
+# `lib.es5.d.ts` — co to jest i po co istnieje
+
+## W skrócie
+
+`lib.es5.d.ts` to plik deklaracji typów wchodzący w skład samego kompilatora TypeScript. Znajduje się w:
+
+```
+node_modules/typescript/lib/lib.es5.d.ts
+```
+
+Opisuje typy wszystkiego, co daje standard **ECMAScript 5** — czyli sam język, bez jakiegokolwiek środowiska uruchomieniowego.
+
+---
+
+## Co zawiera
+
+### Interfejsy globalnych obiektów
+
+`Object`, `Array<T>`, `String`, `Number`, `Boolean`, `Function`, `Date`, `RegExp`, `Math`, `JSON`, `Error`
+
+### Funkcje globalne
+
+`parseInt`, `parseFloat`, `isNaN`, `isFinite`, `encodeURIComponent`, `decodeURIComponent`
+
+### Typy pomocnicze (utility types)
+
+Te, których używasz na co dzień:
+
+| Typ             | Działanie                               |
+| --------------- | --------------------------------------- |
+| `Partial<T>`    | wszystkie pola opcjonalne               |
+| `Required<T>`   | wszystkie pola wymagane                 |
+| `Readonly<T>`   | wszystkie pola tylko do odczytu         |
+| `Pick<T, K>`    | wybiera podzbiór pól                    |
+| `Omit<T, K>`    | usuwa wskazane pola                     |
+| `Record<K, T>`  | obiekt o kluczach `K` i wartościach `T` |
+| `ReturnType<T>` | typ zwracany przez funkcję              |
+| `Parameters<T>` | krotka typów argumentów                 |
+| `Awaited<T>`    | rozpakowuje `Promise`                   |
+
+> **Ciekawostka:** `Partial` i spółka technicznie nie mają nic wspólnego z ES5 — historycznie wylądowały właśnie w tym pliku i tak już zostało.
+
+---
+
+## Dlaczego rozszerzenie `.d.ts`
+
+`.d.ts` = _declaration file_. Plik zawiera **wyłącznie deklaracje typów, zero implementacji**. Nie kompiluje się do JavaScriptu, nie trafia do bundla. To czysta informacja dla kompilatora: „takie rzeczy istnieją w runtime i mają takie sygnatury".
+
+```ts
+interface Array<T> {
+  length: number;
+  push(...items: T[]): number;
+  pop(): T | undefined;
+  // ...same sygnatury, bez ciał funkcji
+}
+```
+
+---
+
+## Kiedy jest ładowany
+
+Zależy od opcji `target` i `lib` w `tsconfig.json`.
+
+```jsonc
+{
+  "compilerOptions": {
+    "target": "ES2020", // wciąga lib.es2020.d.ts
+  },
+}
+```
+
+Pliki `lib.*.d.ts` tworzą łańcuch przez dyrektywy `/// <reference>`:
+
+```
+lib.es2020.d.ts → lib.es2019.d.ts → lib.es2018.d.ts → ... → lib.es5.d.ts
+```
+
+**`lib.es5.d.ts` jest zawsze na dole stosu**, niezależnie od wybranego targetu.
+
+### Klasyczny błąd początkującego
+
+```
+Property 'includes' does not exist on type 'string[]'
+```
+
+`Array.prototype.includes` to ES2016, więc siedzi w `lib.es2016.array.include.d.ts`. Przy `"target": "ES5"` ten plik nie jest ładowany i TypeScript po prostu nie wie, że metoda istnieje.
+
+**Rozwiązanie:** podnieś `target` albo dodaj jawnie bibliotekę:
+
+```jsonc
+{
+  "compilerOptions": {
+    "target": "ES5",
+    "lib": ["ES5", "ES2016.Array.Include"],
+  },
+}
+```
+
+---
+
+## Czego tam **nie** ma
+
+| Czego szukasz                                 | Gdzie to jest                                                |
+| --------------------------------------------- | ------------------------------------------------------------ |
+| `document`, `window`, `fetch`, `localStorage` | `lib.dom.d.ts` (domyślnie dołączany; wyłączysz jawnym `lib`) |
+| `process`, `Buffer`, `fs`                     | pakiet `@types/node` (osobna zależność)                      |
+| `Promise`, `Symbol`, `Map`, `Set`             | `lib.es2015.*.d.ts`                                          |
+
+`lib.es5.d.ts` to **czysty język** — nic o przeglądarce, nic o Node.
+
+---
+
+## Wskazówka przy nauce
+
+Warto do tego pliku zaglądać. W VS Code kliknij `Ctrl` / `Cmd` + klik na dowolną wbudowaną metodę (np. `map`) — wylądujesz dokładnie w `lib.es5.d.ts`.
+
+To jedno z najlepszych dostępnych źródeł do nauki dobrze napisanych generyków i przeciążeń. Przykład — sygnatury `Array.prototype.reduce`:
+
+```ts
+interface Array<T> {
+  reduce(
+    callbackfn: (
+      previousValue: T,
+      currentValue: T,
+      currentIndex: number,
+      array: T[],
+    ) => T,
+  ): T;
+
+  reduce(
+    callbackfn: (
+      previousValue: T,
+      currentValue: T,
+      currentIndex: number,
+      array: T[],
+    ) => T,
+    initialValue: T,
+  ): T;
+
+  reduce<U>(
+    callbackfn: (
+      previousValue: U,
+      currentValue: T,
+      currentIndex: number,
+      array: U[],
+    ) => U,
+    initialValue: U,
+  ): U;
+}
+```
+
+Trzy przeciążenia, a każde uczy czegoś innego o tym, jak TypeScript wnioskuje typy:
+
+1. bez wartości początkowej — akumulator musi być typu `T`
+2. z wartością początkową typu `T` — to samo, ale bezpieczniej
+3. z generykiem `U` — akumulator może być zupełnie innym typem niż elementy tablicy
+
+---
+
+## Podsumowanie
+
+- to plik z **typami**, nie z kodem
+- opisuje **rdzeń języka** (ES5), nie środowisko
+- ładuje się **zawsze**, jako fundament pod wszystkie nowsze `lib.es20xx.d.ts`
+- zawiera utility types (`Partial`, `Pick`, `Record`, ...)
+- świetne źródło do nauki zaawansowanego TypeScriptu
