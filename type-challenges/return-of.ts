@@ -28,6 +28,8 @@ interface Over {
 }
 type Got = ReturnOf<Over>;
 
+type Same = Equal<(x: number) => string, { (x: number): string }>; // true
+
 /*
   With infer on overloaded type TS takes the last matching signature.
   Above on type Got we got boolean so the last matching signature.
