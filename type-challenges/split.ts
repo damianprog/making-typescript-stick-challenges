@@ -10,12 +10,23 @@ type NotEqual<X, Y> = true extends Equal<X, Y> ? false : true;
 // ---cut---
 
 // Implement this type
-type Split<
-  S extends string,
-  SEP extends string,
-> = S extends `${infer frag}${SEP}${infer rest}` ? never : never;
+type Split<S extends string, SEP extends string> = S extends ""
+  ? SEP extends ""
+    ? []
+    : [""]
+  : S extends `${infer frag}${SEP}${infer rest}`
+    ? [frag, ...Split<rest, SEP>]
+    : [S];
 
 // Tests
+
+type test = string extends `${infer a}whatever${infer b}` ? true : false;
+
+type Probe = Split<"abc", "">;
+type Probe2 = Split<"ab", "">;
+
+type A = "abc" extends "" ? true : false;
+type B = "" extends "" ? true : false;
 
 type cases = [
   Expect<Equal<Split<"Hi! How are you?", "z">, ["Hi! How are you?"]>>,
