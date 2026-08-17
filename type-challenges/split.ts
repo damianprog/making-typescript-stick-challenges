@@ -10,15 +10,22 @@ type NotEqual<X, Y> = true extends Equal<X, Y> ? false : true;
 // ---cut---
 
 // Implement this type
-type Split<S extends string, SEP extends string> = string extends S
-  ? string[]
-  : S extends ""
-    ? SEP extends ""
-      ? []
-      : [""]
-    : S extends `${infer frag}${SEP}${infer rest}`
-      ? [frag, ...Split<rest, SEP>]
-      : [S];
+// type Split<S extends string, SEP extends string> = string extends S
+//   ? string[]
+//   : S extends ""
+//     ? SEP extends ""
+//       ? []
+//       : [""]
+//     : S extends `${infer frag}${SEP}${infer rest}`
+//       ? [frag, ...Split<rest, SEP>]
+//       : [S];
+
+type Split<
+  S extends string,
+  SEP extends string,
+> = S extends `${infer Rest}${SEP}` ? Rest : S;
+
+let x: Split<"hello world", " ">;
 
 // Tests
 
