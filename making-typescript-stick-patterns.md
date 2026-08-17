@@ -627,3 +627,119 @@ Trzy przeciążenia, a każde uczy czegoś innego o tym, jak TypeScript wnioskuj
 - ładuje się **zawsze**, jako fundament pod wszystkie nowsze `lib.es20xx.d.ts`
 - zawiera utility types (`Partial`, `Pick`, `Record`, ...)
 - świetne źródło do nauki zaawansowanego TypeScriptu
+
+# Type Challenge: `Split<S, SEP>`
+
+## Zadanie
+
+Zaimplementować odpowiednik `String.prototype.split` na poziomie typów.
+
+```typescript
+type Split<S extends string, SEP extends string> = string extends S
+  ? string[]
+  : S extends ""
+    ? SEP extends ""
+      ? []
+      : [""]
+    : S extends `${infer frag}${SEP}${infer rest}`
+      ? [frag, ...Split<rest, SEP>]
+      : [S];
+```
+
+## Jak się do tego dochodzi
+
+**Kształt rekurencji.** Każda rekurencja na typach wygląda tak samo: _odetnij kawałek → wywołaj sam siebie na reszcie → sklej_. Tutaj kawałkiem jest fragment przed pierwszym separatorem, resztą — wszystko po nim.
+
+**Krok 1 — rdzeń.** Najpierw wersja bez przypadków brzegowych. Przechodzi testy 1, 2 i 5:
+
+```typescript
+type Split<
+  S extends string,
+  SEP extends string,
+> = S extends `${infer frag}${SEP}${infer rest}`
+  ? [frag, ...Split<rest, SEP>]
+  : [S];
+```
+
+Warunek stopu to gałąź `false`: „nie ma już separatora" → zwróć `[S]`, czyli cały pozostały string jako jednoelementowa tupla. Widać to wprost w teście `Split<"Hi! How are you?", "z"> === ["Hi! How are you?"]`.
+
+**Krok 2 — pusty string.** Dla `SEP = ""` na końcu doklejał się śmieciowy `""`, a `Split<"", "">` dawało `[""]` zamiast `[]`. Ten sam błąd w dwóch przebraniach. Fix: strażnik na wejściu z zagnieżdżonym sprawdzeniem `SEP`.
+
+**Krok 3 — szeroki `string`.** `Split<string, "whatever">` musi dać `string[]`. Wymaga osobnego strażnika **na samej górze**.
+
+## Tematy poboczne
+
+### `extends` to przynależność do zbioru, nie zawieranie tekstu
+
+Typ = zbiór wartości. `X extends Y` znaczy „każda wartość z X należy do Y".
+
+- `""` to zbiór jednoelementowy `{ "" }`
+- `"abc"` to zbiór `{ "abc" }`
+- `string` to zbiór wszystkich stringów
+
+Stąd `"abc" extends ""` → `false`. Nie ma to nic wspólnego z tym, że pusty string „mieści się" w każdym stringu.
+
+Template literal type to też zbiór — wszystkich stringów pasujących do wzorca, zwykle nieskończony. Ta sama reguła, inny zbiór.
+
+### `extends` nie jest symetryczne — i to jest narzędzie
+
+|                    | `S = string` | `S = "abc"` |
+| ------------------ | ------------ | ----------- |
+| `S extends string` | `true`       | `true`      |
+| `string extends S` | `true`       | `false`     |
+
+Górny wiersz nie rozróżnia niczego. Dolny — rozróżnia. **Odwrócenie kierunku `extends` to sposób na wykrycie typu szerokiego.**
+
+Ten sam trik w innych przebraniach:
+
+```typescript
+string extends S      // czy S to szeroki string, czy literał?
+[T] extends [never]   // czy T to never?
+0 extends 1 & T       // czy T to any?
+```
+
+### Reguła dopasowania sąsiadujących `infer`
+
+We wzorcu `` `${infer A}${infer B}` `` pierwsza dziura musi połknąć **co najmniej jeden znak**, druga może zostać pusta.
+
+```typescript
+"ab" extends `${infer A}${infer B}`  // true:  A = "a", B = "b"
+"a"  extends `${infer A}${infer B}`  // true:  A = "a", B = ""
+""   extends `${infer A}${infer B}`  // false: nie ma z czego wziąć znaku
+```
+
+Dodatkowo dopasowanie jest **najkrótsze możliwe** — przy `"a b c"` i separatorze `" "` dostajemy `frag = "a"`, `rest = "b c"`, czyli podział na _pierwszym_ wystąpieniu. Dokładnie to, czego chce `split`.
+
+### Koniunkcja w typach warunkowych
+
+Nie ma `&&`. Koniunkcję robi się przez zagnieżdżenie — wejście w wewnętrzny ternary oznacza, że zewnętrzny warunek już jest prawdą:
+
+```typescript
+A extends X
+  ? B extends Y ? /* A i B */ : /* A, ale nie B */
+  : /* nie A */
+```
+
+### Szeroki `string` nigdy nie dopasuje wzorca
+
+`string extends \`${infer a}whatever${infer b}\``→`false`, bo `"kot"`należy do`string`, ale nie do zbioru stringów zawierających „whatever".
+
+Konsekwencja: `string` nie da się „przerobić" rekurencją, bo rekurencja nie ma o co zaczepić — po prostu spada do gałęzi `false` i zwraca `[S]`. Trzeba go **rozpoznać i odesłać osobną odpowiedzią**, i to zanim wejdzie w resztę maszynerii. Stąd kolejność strażników w rozwiązaniu.
+
+### `string[]` vs `[string]`
+
+- `string[]` — tablica o dowolnej długości, elementy typu `string`
+- `[string]` — tupla o dokładnie jednym elemencie
+
+Dla `Split<string, ...>` poprawne jest `string[]`: nie wiadomo, ile fragmentów powstanie, bo nie wiadomo, co to za string.
+
+## Metoda pracy
+
+Nie zgaduj, co zwraca twój typ — sprawdź. Najedź kursorem na alias albo postaw próbkę:
+
+```typescript
+type Probe = Split<"abc", "">;
+//   ^ hover
+```
+
+Buduj przyrostowo: najpierw rdzeń bez przypadków brzegowych, odpal testy, zobacz które padają, dopiero wtedy dokładaj strażników. Kilka padających testów często ma jedną wspólną przyczynę.
