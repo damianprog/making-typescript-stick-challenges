@@ -26,6 +26,7 @@ type Split<
 > = S extends `${infer Rest}${SEP}` ? Rest : S;
 
 let x: Split<"hello world", " ">;
+let y: Split<"hello world ", " ">; // ze spacją na końcu
 
 // Tests
 
@@ -33,6 +34,9 @@ type test = string extends `${infer a}whatever${infer b}` ? true : false;
 
 type Probe = Split<"abc", "">;
 type Probe2 = Split<"ab", "">;
+
+type P = "a b c " extends `${infer A}${" "}` ? A : never;
+type Q = "a b c" extends `${infer A}${" "}${infer B}` ? [A, B] : never;
 
 type A = "abc" extends "" ? true : false;
 type B = "" extends "" ? true : false;

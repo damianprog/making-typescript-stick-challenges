@@ -1,0 +1,326 @@
+JS/TS Warm-up Quiz
+
+Question 1
+Nie mam pojęcia co to jest za zapis #name
+
+private age to chyba oznacza że zmienna jest dostępna tylko w obrębie tej klasy / obiektu?
+
+właściwie to czym sie różni enumeracja od iteracji
+
+dog
+
+cat
+
+elephant
+
+giraffe
+
+zebra
+
+koala
+
+lion
+
+moose
+
+
+
+
+
+
+
+budujemy data store w którym nazwy metod są na podstawie typów entities którymi zarządzamy
+
+Niech pokaże dokładnie jaki problem rozwiązuje DataStore. Przykład tego nieoptymalnego, verbose kodu.
+
+
+
+
+$("#button-container button").on("click", (event) => {
+  hiddenBox.show()
+})
+
+on(eventName: string, callback: (...args: any[]) => void) {
+    this.element.addEventListener(eventName, callback);
+  }
+
+QUESTION
+nie jestem pewny tego fragmentu callback: (...args: any[]) => void
+
+
+QUESTION
+export async function ajax(ajaxProps: AjaxProps): Promise<void>
+czy na pewno powinna zwracac Promise<void>
+
+
+tutaj jest mowa że HTMLElementEventMap jest bardziej constrained a ElementEventMap jest bardziej ogólny i ma zastosowanie w szerszym zakresie eventów. Ale jak spojrzeć do lib.dom.d.ts to interface ElementEventMap {
+    "fullscreenchange": Event;
+    "fullscreenerror": Event;
+} a interface HTMLElementEventMap extends ElementEventMap, GlobalEventHandlersEventMap {
+} no to zdaje się że jest na odwrót i to HTMLElementEventMap jest bardziej general a ElementEventMap bardziej constrained.
+
+
+skonczone na porwnywanu mojego rozwiązania a mike'a claude: "Różnica między ElementEventMap..."
+
+
+
+
+
+
+type Color = Record<"red" | "green" | "blue", number | string>
+
+trzeba zawsze przekazywać zestaw kluczy jako union czyli | ?
+
+
+type Record<K extends keyof any, T> = {
+  [P in K]: T;
+};
+
+
+
+
+// Implement this type
+type If<C, T, F> = 
+
+// Tests
+type cases = [
+  Expect<Equal<If<true, "apple", "pear">, "apple">>,
+  Expect<Equal<If<false, "orange", 42>, 42>>
+]
+
+skonczone na claude 
+Co się stanie przy If<boolean, "a", "b">? Zastanów się, zanim odpowiesz — boolean to przecież true | false. Jaki typ dostaniesz na wyjściu i dlaczego?
+
+Warunkowy typ w TypeScript - Chat
+
+
+Błędna wersja
+
+jeśli funkcja oczekuje number[] to można podać jej readonly number[] ale nie na odwrót bo jesli oczekujemy number[] i podajemy readonly number[] to podajemy to co jest oczekiwane plus cecha readonly.
+
+poprawiona wersja 
+
+jeśli funkcja oczekuje number[] to możliwe że w swoim ciele będzie mutować te tablice bo number[] bez readonly to typ który pozwala na mutowanie. Więc jeśli funkcja oczekuje number[] to możemy jej przekazać tylko number[] a jeśli oczekuje readonly number[] to możemy przekazać readonly number[] oraz number[] bo typ parametru mówi nam o tym arrayu że nie zamierzamy go mutować a number[] jeśli sie nie chce to nie trzeba go mutowac więc wszystko gra.
+
+readonly wygląda jak „dodatek", a tak naprawdę odejmuje możliwości.
+
+w wersji instruktora w przypadku LengthOfTuple<string> otrzymamy never i będzie to rzecz resolved w ciele. A u mnie poprzez ograniczenie nie pozwolimy na przekazanie czegoś takiego do ciała.
+
+
+
+type ReturnOf<F> = F extends () => {}
+
+
+type ReturnOf<F> = F extends () => {} ? true : never;
+
+można też zrobić z extends constraint
+
+type ReturnOf<F extends () => {}> = zwrot z F;
+
+wersja błędna
+
+kiedy oczekiwana jest funkcja bezargumentowa to możemy przekazac funkcje z argumentami bo po prostu w ciele tych argumentow nie wykorzystamy
+
+kiedy oczekiwana jest funkcja z argumentami to nie mozemy przekazac funkcji bez argumentow bo co jeśli w ciele byśmy korzystali z argumentow ktorych nie ma?
+
+wersja poprawiona
+
+kiedy sygnaturą funkcji mówimy że obsługujemy funkcję bezargumentową to nie możemy tam przekazać funkcji która wymaga argumentu żeby się wykonała poprawnie
+
+przykład funkcji która wymaga argumentu żeby się wykonała poprawnie:
+const needsArg = (prefix: string) => prefix.toUpperCase();
+
+jeśli byśmy przekazali needsArg do declare function callIt(f: () => string): void;
+to callIt wywołało by needsArg bez argumentow i kod by się sypnął.
+
+więc 
+
+kiedy oczekiwana jest funkcja bezargumentowa to nie możemy tam przekazać funkcji która wymaga argumentu do poprawnego wykonania
+
+kiedy oczekiwana jest funkcja z argumentami to ...
+no ale co jeśli oczekiwali byśmy na funkcje z argumentami a otrzymali byśmy funkcję bez argumentów? Mogli byśmy wywołać z argumentami funkcję która tych argumentów nie potrzebuje? - Tak
+
+
+
+type ReturnOf<F extends (...any) => {}> = F extends () => {} ? true : never;
+
+
+jeśli ktoś zechce użyć twojego ReturnOf wewnątrz innego generyka, gdzie parametr jest jeszcze nierozwiązany? - nie rozumiem, nie wiem jaka to miała by być sytuacja żeby usprawiedliwić umożliwenie przekazania nie-funkcji do ReturnOf który zajmuje się wydobywaniem zwrotu z funkcji. Zatem wybieram wersję z constraint.
+
+widzę że ReturnType ma constraint czyli zamierzone użycie tego utility type jest takie że w momencie jego użycia wiemy że przekazywany T jest funkcją.
+
+rozumiem też że w type ReturnsOfAll<T> = {
+  [K in keyof T]: ReturnOf<T[K]>;
+}; nie mamy jeszcze pewności że T[K] jest funkcją.  
+
+Jaki masz sposób, żeby to naprawić, nie rezygnując z constraintu? (Podpowiedź: constraint musi się gdzieś propagować w górę.) I ile takich propagacji nazbiera ci się, jeśli ReturnOf będzie używany w pięciu warstwach typów? - nie mam pojęcia, jakie propagowanie constraintu? 
+
+
+
+Spróbuj to dopisać. Jak zapisać: „T to obiekt, którego każda wartość jest funkcją"? Znasz konstrukcję, która opisuje „obiekt o dowolnych kluczach typu string i wartościach typu X".
+type ReturnsOfAll<T extends T[string] extends (...args: any[]) => any>
+
+skonczone na chat Implementacja typu ReturnOf....
+
+I teraz pytanie: kiedy piszesz F extends (...args: any[]) => infer R, a F ma trzy sygnatury — którą z nich TypeScript dopasowuje? Nie może przecież zwrócić trzech różnych R. - Jaką sygnature dopasowuje że dostaję Promise<unknown>? Nie mam pojęcia.
+
+
+type ReturnOf<F extends (...args: any[]) => any> = F extends (
+  ...args: any[]
+) => infer R
+  ? R
+  : never;
+
+// rozwiązanie instruktora  
+type ReturnOf<F> = F extends { (...arg: any[]): infer RT } ? RT : never;
+
+coś mi nie gra z tym drugim zapisem dlaczego tu (...arg: any[]): infer RT 
+nie ma strzałki i w ogóle porównaj mi oba te rozwiązania.
+
+skonczone na chat Implementacja typu ReturnOf....
+
+rzucić okiem o co dokładnie chodziło z tym dopasowaniem przeciążonych funkcji
+
+interface Over {
+  (): string;
+  (x: number): boolean;
+}
+type Got = ReturnOf<Over>;
+
+zwrot będzie boolean
+
+
+lib.es5.d.ts
+
+co to dokładnie za plik bo ewidentnie jest ważny
+
+
+
+
+
+
+
+string to array of characters
+
+
+1. kawałek, zaczynając od początku stringa to pierwsze znaki przed pierwszym delimeter. Czyli jakoś odciąć te część i wywołać rekurencyjnie na reszcie i robić to samo aż do końca stringa.
+
+2. S extends coś,sep,reszta - nie mam pojęcia
+
+
+type Split<
+  S extends string,
+  SEP extends string,
+> = S extends `${infer frag},${infer rest}` ? never : never;
+
+ale co z tym zrobić jak zaimplementować rekurencyjność i w ogóle jak sie za to dalej zabrać?
+
+Jedna rzecz, która cię może zaskoczyć i warto o niej wiedzieć zawczasu: gdy we wzorcu są dwie dziury oddalone stałym separatorem, TS dopasowuje najkrótszy możliwy pierwszy fragment. Zastanów się, czy to dla ciebie dobrze, czy źle — przy "a b c" i separatorze " ".
+
+no to weźmie "a" i jako reszte potraktuje "b c" czyli chyba spoko
+
+
+
+"" — czy pusty string pasuje do `${infer frag}${infer rest}`
+
+dwa infer zakładają że są conajmniej 2 elementy z empty string to w tym przypadku 1 element
+
+Expect<Equal<Split<"", "z">, [""]>>,
+
+oznacza że weszliśmy w gałąź false?
+
+Reguła jest taka: pierwsza dziura przed kolejną dziurą musi połknąć co najmniej jeden znak, reszta może być pusta.
+
+a tu nie ma co najmniej 1 znaku więc faktycznie false
+
+S extends ""
+
+a to nie jet tak że tutaj jeśli S jest czymkolwiek w tym "" to bedzie true?
+no bo przecież może być empty stringiem + cośtam czyli spełnia warunek posiadania empty stringa a w dodatku ma cokolwiek tam jeszcze albo jest po prostu pustym stringiem?
+
+Skonczone na chat Split type challenge
+
+Type D na pewno jest true bo "" należy do nieskonczonego zbioru stringów w postaci string. I Type C w takim razie musi być false bo nie jest tak że każdy string należy do zbioru w ktorym jest "".
+
+S = string, S extends string true
+S = "abc", S extends string true
+
+S = string, string extends S true
+S = "abc", string extends S false
+
+string[] to array stringów, a [string] to jednoelementowy array z jednym elementem typu string
+
+pomyśl, co się stanie z S = string, jeśli najpierw wpadnie na S extends "".
+będzie wejście w gałąź false
+
+Bug B. Split<string, "whatever"> ma dać string[].
+
+
+type Split<
+  S extends string,
+  SEP extends string,
+> = S extends `${infer Rest}${SEP}` ? Rest : S;
+
+let x: Split<"hello world", " ">;
+
+to mam rozumieć jako pytanie czy S czyli "hello world" należy do zbioru wszystkich stringów pasujących do wzorca "[cośtam][" "]". Nie jestem pewny jaka tu jest konkluzja.
+
+także pytanie to czy "hello world" należy do zbioru wszystkich stringów kończących się spacją? Odpowiedź to nie bo "hello world" nie kończy się spacją
+
+let y: Split<"hello world ", " ">   // ze spacją na końcu
+
+tu będzie wejście w gałąź true bo "hello world " faktycznie konczy się spacją więc zostanie zwrócone to co znajduje się przed spacją czyli "hello world"
+
+Który z tych trzech jest tym, który ostatecznie potrzebujesz?
+`${infer A}${SEP}${infer B}`    // zawiera SEP gdziekolwiek?
+
+question:
+Mówiliśmy, że dopasowanie jest „najkrótsze możliwe".
+chyba nie jestem pewny co to znaczy
+
+type P = "a b c " extends `${infer A}${" "}` ? A : never
+
+W P string ma trzy spacje. Gdyby A było „najkrótsze", wyszłoby "a". Co wyjdzie naprawdę i dlaczego?
+
+wyjdzie "a b c" bo szukamy stringa który kończy się spacją a nie stringa zawierającego spacje gdziekolwiek
+
+type Q = "a b c"  extends `${infer A}${" "}${infer B}` ? [A, B] : never
+
+tutaj zwrócimy ["a","b"] i to faktycznie jest dopasowanie najkrótsze możliwe?
+a nie bo edytor mówi że Q to bedzie ["a", "b c"] i to ma sens bo szukamy cośtam spacja reszta
+
+type R = "a b c " extends `${infer A}${" "}${infer B}` ? [A, B] : never
+
+dostaniemy ["a", "b c "] bo "a" jest najkrótszym A po dopasowaniu tego wzorca do "a b c "
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -743,3 +743,109 @@ type Probe = Split<"abc", "">;
 ```
 
 Buduj przyrostowo: najpierw rdzeń bez przypadków brzegowych, odpal testy, zobacz które padają, dopiero wtedy dokładaj strażników. Kilka padających testów często ma jedną wspólną przyczynę.
+
+# Dopasowywanie template literal types — metoda eksperymentalna
+
+Notatka poboczna do challenge'u `Split<S, SEP>`. Punkt wyjścia: instruktor nie pisał rozwiązania z pamięci, tylko stawiał najmniejszy możliwy eksperyment i czytał wynik z edytora.
+
+## Eksperyment zerowy
+
+```typescript
+type Split<
+  S extends string,
+  SEP extends string,
+> = S extends `${infer Rest}${SEP}` ? Rest : S;
+
+let x: Split<"hello world", " ">; // "hello world"
+let y: Split<"hello world ", " ">; // "hello world"
+```
+
+Ten wzorzec nie jest krokiem w stronę rozwiązania — jest sondą. Sprawdza, jak w ogóle zachowuje się dopasowanie, zanim zacznie się budować rekurencję.
+
+Uwaga na pułapkę: `x` i `y` dają **ten sam wynik dwiema różnymi drogami**. `x` wpada w gałąź `false` i zwraca `S` nietknięte, `y` wpada w `true` i `Rest` łapie wszystko przed spacją. Patrzenie wyłącznie na wynik nie mówi, którą gałęzią poszedł typ.
+
+## Jak czytać wzorzec
+
+`` S extends `${infer A}${SEP}` `` to pytanie: _czy `S` należy do zbioru wszystkich stringów pasujących do tego wzorca?_
+
+Kluczowe jest to, czego we wzorcu **nie ma**. Po `${SEP}` nie stoi nic, więc zbiór to nie „stringi zawierające spację", tylko węższy: „stringi **kończące się** spacją". `"hello world"` do niego nie należy.
+
+## Trzy warianty pozycji separatora
+
+Pozycja `${SEP}` decyduje o wszystkim. Każdy wariant zadaje inne pytanie:
+
+```typescript
+`${infer A}${SEP}`              // czy S kończy się na SEP?
+`${SEP}${infer A}`              // czy S zaczyna się od SEP?
+`${infer A}${SEP}${infer B}`    // czy S zawiera SEP gdziekolwiek?
+```
+
+Dla `Split` potrzebny jest trzeci — tylko on pozwala odciąć fragment i zostawić resztę do dalszej rekurencji.
+
+## Reguła dopasowania
+
+> TS dopasowuje wzorzec od lewej do prawej. Każda dziura bierze **najkrótszy** fragment, przy którym **reszta wzorca nadal ma szansę się dopasować**.
+
+Drugie zdanie jest ważniejsze od pierwszego. „Najkrótsze" to nie zachcianka, tylko preferencja **rozstrzygająca remisy** — a remis istnieje tylko tam, gdzie w ogóle jest wybór.
+
+### Dowód na dwóch przykładach
+
+```typescript
+type P = "a b c " extends `${infer A}${" "}` ? A : never;
+// => "a b c"   (NIE "a")
+
+type Q = "a b c" extends `${infer A}${" "}${infer B}` ? [A, B] : never;
+// => ["a", "b c"]
+```
+
+| wzorzec                            | co musi zostać po `A`               | najkrótsze `A`, które to spełnia |
+| ---------------------------------- | ----------------------------------- | -------------------------------- |
+| `` `${infer A}${" "}` ``           | **dokładnie** jedna spacja i koniec | `"a b c"`                        |
+| `` `${infer A}${" "}${infer B}` `` | spacja + cokolwiek (może być puste) | `"a"`                            |
+
+W `P` istnieje dokładnie jedno `A`, które działa — preferencja „najkrótsze" nie ma czego rozstrzygać. Gdyby `A = "a"`, to po nim zostałoby `"b c "`, a wzorzec wymaga dokładnie `" "`.
+
+W `Q` pasowałyby trzy różne rozbicia (`["a", "b c"]`, `["a b", "c"]`, `["a b c", ""]` — to ostatnie nie, bo brakuje spacji, ale idea jest jasna) i dopiero tam reguła wybiera najkrótsze `A`.
+
+### Test kontrolny
+
+```typescript
+type R = "a b c " extends `${infer A}${" "}${infer B}` ? [A, B] : never;
+// => ["a", "b c "]
+```
+
+Ten sam string co w `P`, ten sam wzorzec co w `Q`. Reszta wzorca to `spacja + cokolwiek`, więc pierwsza spacja wystarcza i `A` nie sięga dalej. Końcowa spacja wpada do `B`.
+
+**Konsekwencja praktyczna:** wzorzec `` `${infer A}${SEP}${infer B}` `` dzieli na **pierwszym** wystąpieniu separatora. Dokładnie tego chce `split`.
+
+## Minimum jednego znaku
+
+Osobna reguła, niezależna od powyższej. W `` `${infer A}${infer B}` `` — dwie sąsiadujące dziury bez tekstu między nimi — pierwsza musi połknąć **co najmniej jeden znak**:
+
+```typescript
+"ab" extends `${infer A}${infer B}`  // true:  A = "a", B = "b"
+"a"  extends `${infer A}${infer B}`  // true:  A = "a", B = ""
+""   extends `${infer A}${infer B}`  // false: nie ma z czego wziąć znaku
+```
+
+To właśnie ta reguła sprawia, że `Split<S, "">` tnie po jednym znaku — i że rekurencja zatrzymuje się na pustym stringu, zamiast lecieć w nieskończoność.
+
+## Szeroki `string` nie dopasuje żadnego wzorca ze stałym tekstem
+
+```typescript
+string extends `${infer A}whatever${infer B}` ? true : false  // false
+```
+
+Bo `"kot"` należy do `string`, ale nie do zbioru stringów zawierających „whatever". Zbiór szerszy nie mieści się w węższym.
+
+Konsekwencja: `string` nie da się przerobić rekurencją — trzeba go rozpoznać strażnikiem `string extends S` i odesłać osobną odpowiedzią, zanim wejdzie w maszynerię wzorców.
+
+## Metoda
+
+1. Postaw najmniejszy możliwy wzorzec i przypisz go do zmiennej.
+2. Najedź kursorem. Przeczytaj wynik. **Nie zgaduj.**
+3. Zmień jedną rzecz — pozycję separatora, obecność dziury na końcu, jeden znak w wejściu.
+4. Porównaj. Różnica między dwoma eksperymentami mówi więcej niż każdy z osobna.
+5. Sprawdzaj wejścia brzegowe (`""`, jednoznakowe, ze spacją na końcu) **od razu**, nie na końcu — tam siedzą wszystkie niespodzianki.
+
+Gdy wynik przeczy intuicji, wygrywa edytor.
