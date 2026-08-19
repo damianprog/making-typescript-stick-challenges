@@ -293,6 +293,165 @@ type R = "a b c " extends `${infer A}${" "}${infer B}` ? [A, B] : never
 
 dostaniemy ["a", "b c "] bo "a" jest najkrótszym A po dopasowaniu tego wzorca do "a b c "
 
+S extends `${infer R}${SEP}${infer T}` ? [R, ...Split<T, SEP>] : [S];
+
+let x: Split<"Hi!", "">;
+
+prześledźmy rekurencje
+
+["H", ...Split<T, SEP>]
+
+a co zwróci to kolejne wywołanie Split<T, SEP>?
+
+["i", ...Split<T, SEP>]
+
+dalej
+
+["!", ...Split<T, SEP>]
+
+dalej
+
+Jeśli wiemy że ostatnim elementem będzie empty string ""
+także T w tym ostatnim rekurencyjnym wywołaniu będzie ""
+a "" nie pasuje do wzorca do ktorego dopasowujemy S
+zatem jeśli nie pasuje do wzorca to wchodzimy w gałąź false 
+zatem zwracamy [""]
+
+I doszliśmy do przypadku bazowego zatem rekurencja zaczyna się zwijać
+
+return [""]
+
+["!", ...Split<T, SEP>] w miejsce ...Split<T, SEP> otrzymuje [""]
+
+więc return ["!",""]
+
+["i", ...Split<T, SEP>] w miejsce ...Split<T, SEP> otrzymuje ["!",""]
+
+więc return ["i","!",""]
+
+["H", ...Split<T, SEP>] w miejsce ...Split<T, SEP> otrzymuje ["i","!",""]
+
+więc return ["H","i","!",""]
+
+i koniec
+
+Także widać że winowajcą tego że w końcowym array ostatnim elementem jest "", jest przypadek bazowy w gałęzi false
+
+zatem modyfikujemy gałąź false
+dla przypomnienia: gałąź false jest odpalana wtedy kiedy nie udało się dopasować S do wzorca
+
+zatem w gałęzi false dodajemy kolejne condition że jeśli nie udało się dopasować S do wzorca i za razem S jest empty stringiem "" to zwracamy empty array []
+a jeśli nie udało się dopasować S do wzorca ale S nie jest empty stringiem ""
+to zwracamy [S]
+
+type Split<
+  S extends string,
+  SEP extends string,
+> = S extends `${infer R}${SEP}${infer T}`
+  ? [R, ...Split<T, SEP>]
+  : S extends ""
+    ? []
+    : [S];
+
+let x: Split<string, "whatever">;
+
+w obecnym kształcie odpowiedzmy na pytanie dlaczego dla takiego przypadku 
+x jest [string]
+
+rozumiem że string oznacza jakikolwiek string więc jest to zbiór wszystkich możliwych stringow. Mogę to rozumieć w ten sposob?
+
+ok prześledźmy 
+
+Split otrzymuje jako S string, jako SEP "whatever"
+
+S extends `${infer R}${SEP}${infer T}` ?
+
+czyli zadajemy tutaj pytanie czy jakikolwiek string zawiera się w zbiorze stringów pasujących do danego wzorca?
+Odpowiedź to oczywiście Nie bo nie wszystkie stringi pasują do podanego wzorca
+
+więc wchodzimy w gałąź false
+
+zadajemy kolejne pytanie : S extends ""
+czy S jest empty stringiem "" ?
+
+Nie
+
+zatem wchodzimy w gałąź false drugiego conditionala czyli w [S]
+zatem zwracamy [string]
+
+Typ to nazwa na zestaw konkretnych wartości, które da się do niego przypisać.
+
+type Bit = 0 | 1;        // zbiór: { 0, 1 }  — dwa elementy
+type B = boolean;        // zbiór: { true, false }
+type S = string;         // zbiór: { "", "a", "ab", "żółw", ... }  — nieskończony
+type N = null;           // zbiór: { null }  — jeden element
+type Nothing = never;    // zbiór: { }  — pusty, nie ma żadnej wartości tego typu
+
+A ⊆ B czyta się „A jest podzbiorem B" i znaczy: każdy element A jest też elementem B.
+
+IMPORTANT:
+
+także to nadzbiór ma wszystkie elementy podzbioru i ewentualnie jeszcze jakieś?
+
+a podklasa ma wszystko to co ma nadklasa i ewentualnie jeszcze jakieś właściwości?
+
+
+także wracając do Split
+
+type Split<
+  S extends string,
+  SEP extends string,
+> = S extends `${infer R}${SEP}${infer T}`
+  ? [R, ...Split<T, SEP>]
+  : S extends ""
+    ? []
+    : [S];
+
+let x: Split<string, "whatever">;
+
+jak już ustaliłem wchodzimy do gałęzi false w drugim conditionalu 
+czyli zwracamy [S]
+
+Raczej Podchwytliwe:
+
+To w takim razie jeśli problem jest w tym że lądujemy w miejscu zwracającym [S]
+to należy dodać nowy conditional właśnie w tym miejscu?
+
+Spróbujmy i zobaczymy co z tego wyniknie
+
+cel jest taki dla let x: Split<string, "whatever">;
+x ma być string[]
+
+jak sprawdzić czy S to jest string?
+
+S extends string?
+
+zadajemy tutaj pytanie czy string w S należy do zbioru wszystkich możliwych stringów? 
+
+Czy to pytanie oddaje nasz cel czyli: 
+jak sprawdzić czy S to jest string?
+
+No nie bo wtedy S może być jakimkolwiek stringiem a nie konkretnie string
+
+a na odwrót?
+
+string extends S
+
+W ten sposób zadajemy pytanie czy każdy string zawiera się w S
+
+i to jest poprawny sposób bo jeśli S to jest string
+to faktem jest że zbiór wszystkich stringów zawiera się w zbiorze wszystkich stringów
+
+a jeśli S to jest np "smth"
+
+skonczone tutaj
+
+
+
+
+
+
+
 
 
 
