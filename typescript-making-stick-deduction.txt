@@ -507,6 +507,65 @@ type Split<
 
 
 
+IsTuple<T> Challenge
+
+Chodzi o to że przyjmujemy type T i zwracamy boolean czy T jest tuple type
+
+po pierwsze dodajmy constraint żeby nie przyjmować czegokolwiek poza arrayem 
+
+ale zaraz bo właśnie również i o to chodzi żeby przyjąć cokolwiek co nie jest arrayem i zwrócić wtedy false więc nie robimy constraintu bo chcemy móc przyjąć cokolwiek
+
+[] - Tuple
+[number] - Tuple
+readonly [1] - Tuple
+
+Czyl tuple nie musi być readonly
+
+{ length: 1 } - Nie jest tuple
+
+number[] - Również nie jest tuple
+a dlaczego nie jest Tuple?
+Dlaczego [] to jest tuple a number[] nie jest tuple?
+
+Może dlatego że number[] oznacza że mamy array i nie jest powiedziane że jest on stałej długości. Ale [] czy [number] również niekoniecznie zawsze pozostaną tej samej długości jedynie readonly [1] mamy gwarancje że jest i będzie stałej długości. 
+
+Może number[] sugeruje modyfikacje tego arraya?
+
+Może sprawdźmy najlepiej definicje Tuple
+
+In programming, a tuple is a fixed-size, ordered collection of values that can hold different data types. Unlike lists or arrays, tuples are immutable—meaning you cannot change, add, or remove items after creation. 
+
+podkreślane jest że cechą tuple jest niemutowalność 
+
+to dlaczego testy przepuszczają arrays które nie są readonly?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
