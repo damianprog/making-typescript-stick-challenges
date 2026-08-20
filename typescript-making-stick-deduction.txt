@@ -444,26 +444,61 @@ to faktem jest że zbiór wszystkich stringów zawiera się w zbiorze wszystkich
 
 a jeśli S to jest np "smth"
 
-skonczone tutaj
+to zadane pytanie dla conditionala string extends S to będzie czy zbiór wszystkich stringów zawiera się w zbiorze do którego pasuje jeden literał "smth"
 
+warunek jest dobry a teraz pomyślmy o jego umiejscowieniu
 
+problem jest taki że dla let x: Split<string, "whatever">;
+x to jest [string] a ma być string[]
 
+jak już ustaliliśmy wynik ten pochodzi z ostatniej gałęzi false
 
+to próbujemy umieścić tam ten dodatkowy conditional i zobaczymy co z tego wyjdzie
 
+type Split<
+  S extends string,
+  SEP extends string,
+> = S extends `${infer R}${SEP}${infer T}`
+  ? [R, ...Split<T, SEP>]
+  : S extends ""
+    ? []
+    : string extends S
+      ? string[]
+      : [S];
 
+wynik dla x teraz jest prawidłowy czyli string[]
 
+wszystkie testy przechodzą z wyjątkiem jednego:
 
+Expect<Equal<Split<"", "z">, [""]>>,
 
+a co zwraca mój kod?
+empty array []
 
+sprawdzmy dlaczego
 
+S extends "" ? []
 
+ten fragment za to odpowiada
 
+pamiętajmy że dla Split<"", ""> wynikiem ma być []
 
+więc jeśli S jest "" i za razem SEP to "" to ma być [] w przeciwnym razie ma byc [""]
 
+Udało się! Wszystkie testy przechodzą!
 
-
-
-
+type Split<
+  S extends string,
+  SEP extends string,
+> = S extends `${infer R}${SEP}${infer T}`
+  ? [R, ...Split<T, SEP>]
+  : S extends ""
+    ? SEP extends ""
+      ? []
+      : [""]
+    : string extends S
+      ? string[]
+      : [S];
 
 
 

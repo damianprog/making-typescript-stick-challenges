@@ -26,10 +26,16 @@ type Split<
 > = S extends `${infer R}${SEP}${infer T}`
   ? [R, ...Split<T, SEP>]
   : S extends ""
-    ? []
-    : [S];
+    ? SEP extends ""
+      ? []
+      : [""]
+    : string extends S
+      ? string[]
+      : [S];
 
-let x: Split<string, "whatever">;
+let x: Split<"", "z">;
+
+// let x: Split<string, "whatever">;
 
 // let x: Split<"Hi!", "">;
 // let x: Split<"Hi! How are you?", "">;
