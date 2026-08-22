@@ -656,25 +656,39 @@ Twoja diagnoza jest trafna i to jest dokładnie właściwe miejsce błędu. Rozu
 model „wzorzec = zbiór pasujących wartości", którym posługujesz się przy split, zostaw dla typów opisujących dane (stringi, literały, unie). Dla typów opisujących interfejs (obiekty, tablice, funkcje) przełącz się na „czy dostawa pokrywa zamówienie".
 
 
+więc jeśli chcemy sprawdzić czy T jest jakimkolwiek arrayem
+to robimy T extends readonly any[]
 
+type IsTuple<T> = T extends readonly any[] ? true : false;
 
+zatem przy takim rozwiązaniu tylko jeden test nie przechodzi
 
+Expect<Equal<IsTuple<number[]>, false>>,
 
+czy na number[] da się za pomocą indexed access sprawdzić length?
+bo to by było absurdalne
 
+tu się da co ma sens
+let y: []["length"];
 
+w tym przypadku wynikiem jest number
+to skorzystajmy z tego faktu w rozwiązaniu
+let z: number[]["length"];
 
+jak i gdzie dodać ten drugi warunek kiedy wiemy już że dostaliśmy array
 
+T extends readonly any[] 
 
+jeśli ten warunek to true to potrzebujemy dalszych sprawdzeń
+a jeśli false to możemy zwrócić false
 
+nie możemy zrobić tego bez tego warunku T extends readonly any[] 
+czyli po prostu tylko sprawdzenie number extends T["length"] ? false : true 
+bo jeśli będziemy mieć strukturę danych inną niż array i tam po prostu nie będzie T["length"] to zwrócimy true a to musi być array
 
+a może najpierw number extends T["length"] a potem T extends readonly any[]
 
-
-
-
-
-
-
-
+ale nie można dać number extends T["length"] przed sprawdzeniem czy T to jest array
 
 
 

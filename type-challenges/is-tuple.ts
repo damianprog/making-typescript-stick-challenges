@@ -10,7 +10,15 @@ type NotEqual<X, Y> = true extends Equal<X, Y> ? false : true;
 // ---cut---
 
 // Implement this type
-type IsTuple<T> = any;
+type IsTuple<T> = T extends readonly any[]
+  ? number extends T["length"]
+    ? false
+    : true
+  : false;
+
+let x: IsTuple<number[]>;
+let y: []["length"];
+let z: number[]["length"];
 
 // Tests
 type cases = [
@@ -20,3 +28,5 @@ type cases = [
   Expect<Equal<IsTuple<{ length: 1 }>, false>>,
   Expect<Equal<IsTuple<number[]>, false>>,
 ];
+
+export {};
