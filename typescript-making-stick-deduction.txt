@@ -690,6 +690,79 @@ a może najpierw number extends T["length"] a potem T extends readonly any[]
 
 ale nie można dać number extends T["length"] przed sprawdzeniem czy T to jest array
 
+type IsTuple<T> = T extends readonly any[]
+  ? number extends T["length"]
+    ? false
+    : true
+  : false;
+  
+To jest rozwiązanie bo działa tak
+najpierw pytamy czy T jest jakimkolwiek array?
+jeśli tak to czy pod T["length"] leży number? Jeśli tak to zwracamy false a jeśli nie to zwracamy true. Czyli true zwracamy jeśli T jest jakimkolwiek arrayem i za razem pod T["length"] nie leży number.
+A ostatnie false odpowiada przecząco na pierwsze pytanie czyli czy T jest jakimkolwiek arrayem.
+
+ale jak to type U = IsTuple<[1] | number[]>; // boolean, nie false
+przecież ten typ jest w stanie zwrócić tylko albo true albo false innego wyjścia nie widzę w definicji tego typu
+
+Back to claude:
+
+Masz rację, że zwraca tylko true albo false — i to jest właśnie odpowiedź. W TypeScripcie:
+
+typescript
+type Boolean_ = true | false;  // to JEST boolean, dosłownie
+
+boolean nie jest osobnym, trzecim typem. To alias na unię true | false. Więc kiedy widzisz boolean jako wynik, to znaczy dokładnie „zwróciło i true, i false", a nie „zwróciło coś innego niż true/false".
+
+Back to moja dedukcja:
+czyli możliwe jest że typ zwróci i true i false na raz pod postacią boolean?
+
+Back to claude:
+Skąd biorą się dwa wyniki naraz
+
+Warunkowy typ z gołym parametrem (T extends ..., bez opakowania) jest dystrybutywny: kiedy T jest unią, TS nie wykonuje sprawdzenia raz na całej unii, tylko rozbija ją na człony, uruchamia typ osobno dla każdego i skleja wyniki z powrotem w unię.
+
+IsTuple<[1] | number[]>
+// TS rozbija:
+//   IsTuple<[1]>       → true
+//   IsTuple<number[]>  → false
+// scala wyniki:
+//   true | false
+// normalizuje:
+//   boolean
+
+Każde pojedyncze wywołanie faktycznie zwróciło true albo false — dokładnie tak, jak napisałeś w definicji. Tylko że wywołań było dwa, bo argument był unią.
+
+Jak to wyłączyć
+
+Opakowanie obu stron w krotkę zabiera parametrowi „gołość" i wyłącza dystrybucję — wtedy sprawdzenie leci raz, na całej unii:
+
+typescript
+type IsTupleStrict<T> = [T] extends [readonly any[]]
+  ? number extends T["length"]
+    ? false
+    : true
+  : false;
+
+type R2 = IsTupleStrict<[1] | number[]>;  // false
+
+Dlaczego false? Bo [[1] | number[]] musi w całości być przypisywalne do [readonly any[]] — jest, więc wchodzimy w gałąź true. Tam T["length"] to 1 | number, co upraszcza się do number, więc number extends number → false. Sensowna odpowiedź: unia krotki i tablicy nie jest krotką.
+
+skonczone na poczytac to jeszcze troszkę
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

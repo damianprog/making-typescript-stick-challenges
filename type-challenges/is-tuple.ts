@@ -20,6 +20,10 @@ let x: IsTuple<number[]>;
 let y: []["length"];
 let z: number[]["length"];
 
+type U = IsTuple<[1] | number[]>; // boolean, nie false
+type V = IsTuple<any>; // boolean
+type W = IsTuple<never>; // never
+
 // Tests
 type cases = [
   Expect<Equal<IsTuple<[]>, true>>,
