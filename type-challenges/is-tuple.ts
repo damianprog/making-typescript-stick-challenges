@@ -24,6 +24,9 @@ type U = IsTuple<[1] | number[]>; // boolean, nie false
 type V = IsTuple<any>; // boolean
 type W = IsTuple<never>; // never
 
+type Distributive<T> = T extends string ? "tak" : "nie";
+type R1 = Distributive<string | number>; // "tak" | "nie"
+
 // Tests
 type cases = [
   Expect<Equal<IsTuple<[]>, true>>,

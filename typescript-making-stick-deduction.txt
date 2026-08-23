@@ -749,13 +749,14 @@ Dlaczego false? Bo [[1] | number[]] musi w całości być przypisywalne do [read
 
 skonczone na poczytac to jeszcze troszkę
 
+[[1] | number[]] musi w całości być przypisywalne do [readonly any[]]
 
+nie bardzo rozumiem jak unia [1] | number[] jest przypisywalna do readonly any[]
 
+Reguła jest taka: unia jest przypisywalna do celu, gdy każdy jej człon jest przypisywalny.
 
-
-
-
-
+[1]       extends readonly any[]  // true — krotka to tablica
+number[]  extends readonly any[]  // true — tablica to tablica
 
 
 

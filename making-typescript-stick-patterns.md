@@ -849,3 +849,213 @@ Konsekwencja: `string` nie da się przerobić rekurencją — trzeba go rozpozna
 5. Sprawdzaj wejścia brzegowe (`""`, jednoznakowe, ze spacją na końcu) **od razu**, nie na końcu — tam siedzą wszystkie niespodzianki.
 
 Gdy wynik przeczy intuicji, wygrywa edytor.
+
+# IsTuple — rozwiązanie i dedukcja
+
+## Zadanie
+
+Napisać typ, który zwraca `true` dla krotek (tuples) i `false` dla wszystkiego innego.
+
+```typescript
+type cases = [
+  Expect<Equal<IsTuple<[]>, true>>,
+  Expect<Equal<IsTuple<[number]>, true>>,
+  Expect<Equal<IsTuple<readonly [1]>, true>>,
+  Expect<Equal<IsTuple<{ length: 1 }>, false>>,
+  Expect<Equal<IsTuple<number[]>, false>>,
+];
+```
+
+## Rozwiązanie
+
+```typescript
+type IsTuple<T> = T extends readonly any[]
+  ? number extends T["length"]
+    ? false
+    : true
+  : false;
+```
+
+## Tok rozumowania
+
+**Krok 1 — sprawdzenie czy to w ogóle tablica.**
+
+```typescript
+type IsTuple<T> = T extends readonly any[] ? true : false;
+```
+
+Przy takiej wersji nie przechodzi tylko jeden test: `IsTuple<number[]>` daje `true`, a ma dać `false`. Potrzebne jest dodatkowe kryterium odróżniające krotkę od zwykłej tablicy.
+
+**Krok 2 — czym różni się krotka od tablicy.**
+
+Długością. Krotka ma długość znaną w czasie kompilacji, tablica nie:
+
+```typescript
+type A = []["length"]; // 0
+type B = [number]["length"]; // 1
+type C = number[]["length"]; // number
+```
+
+Krotki mają **literalną** długość (`0`, `1`, `2`...), zwykłe tablice mają `number`. To jest cały mechanizm rozwiązania.
+
+**Krok 3 — jak zapytać o to warunkiem.**
+
+```typescript
+number extends T["length"] ? false : true
+```
+
+Kierunek `extends` jest tutaj kluczowy. Pytanie brzmi: „czy `number` jest przypisywalny do długości", czyli „czy długość jest tak samo szeroka jak `number`".
+
+Odwrotny zapis byłby bezużyteczny — `T["length"] extends number` jest zawsze `true`, bo `0 extends number` też jest prawdą.
+
+**Krok 4 — dlaczego kolejność warunków jest wymuszona.**
+
+Nie da się dać `number extends T["length"]` przed sprawdzeniem, czy `T` jest tablicą. Dwa powody:
+
+1. **Poprawność** — dla `{ length: 1 }` samo `number extends T["length"]` daje `number extends 1` → `false` → wynik `true`, a test wymaga `false`.
+2. **Kompilacja** — dla typu bez `length` (np. `IsTuple<string>`) zapis `T["length"]` to błąd: _„Type 'length' cannot be used to index type 'T'"_. Dopiero wewnątrz gałęzi `true` TS wie, że `T` jest tablicą, więc indeksowanie jest legalne.
+
+**Krok 5 — złożenie.**
+
+```typescript
+type IsTuple<T> = T extends readonly any[]
+  ? number extends T["length"]
+    ? false
+    : true
+  : false;
+```
+
+Czyta się to tak:
+
+- czy `T` jest jakąkolwiek tablicą?
+  - jeśli tak → czy pod `T["length"]` leży `number`?
+    - tak → `false` (zwykła tablica)
+    - nie → `true` (krotka, długość literalna)
+  - jeśli nie → `false` (to w ogóle nie tablica)
+
+`true` wychodzi wtedy i tylko wtedy, gdy `T` jest tablicą **i zarazem** jej `length` nie jest szerokim `number`.
+
+## Dlaczego `readonly any[]`, a nie `any[]`
+
+`readonly any[]` jest nadtypem `any[]` — każda zwykła tablica jest przypisywalna do readonly, ale nie odwrotnie. Dzięki temu jeden warunek łapie oba warianty i test `IsTuple<readonly [1]>` przechodzi.
+
+---
+
+# Dystrybutywność typów warunkowych
+
+## Obserwacja
+
+```typescript
+type U = IsTuple<[1] | number[]>; // boolean
+```
+
+Choć typ potrafi zwrócić tylko `true` albo `false`, wynikiem jest `boolean`.
+
+## Wyjaśnienie
+
+`boolean` **nie jest** trzecim, osobnym typem. To alias na unię:
+
+```typescript
+type Boolean_ = true | false; // to JEST boolean
+```
+
+Typ warunkowy z **gołym** parametrem (`T extends ...`, bez opakowania) jest _dystrybutywny_: gdy `T` jest unią, TS nie sprawdza warunku raz na całej unii, tylko rozbija ją na człony, uruchamia typ osobno dla każdego i skleja wyniki w unię.
+
+```typescript
+IsTuple<[1] | number[]>;
+//   IsTuple<[1]>       → true
+//   IsTuple<number[]>  → false
+//   wynik: true | false
+//   normalizacja: boolean
+```
+
+Każde pojedyncze wywołanie zwróciło `true` lub `false` — wywołań było po prostu dwa.
+
+Wyraźniej widać to bez normalizacji do `boolean`:
+
+```typescript
+type Distributive<T> = T extends string ? "tak" : "nie";
+type R1 = Distributive<string | number>; // "tak" | "nie"
+```
+
+## Przypadki brzegowe
+
+```typescript
+type U = IsTuple<[1] | number[]>; // boolean  (dystrybucja)
+type V = IsTuple<any>; // boolean  (any wchodzi w obie gałęzie)
+type W = IsTuple<never>; // never    (pusta unia = brak członów)
+```
+
+W type-challenges nieoceniane, w realnym kodzie potrafi zaskoczyć.
+
+## Jak wyłączyć dystrybucję
+
+Opakowanie obu stron w krotkę zabiera parametrowi „gołość":
+
+```typescript
+type IsTupleStrict<T> = [T] extends [readonly any[]]
+  ? number extends T["length"]
+    ? false
+    : true
+  : false;
+
+type R2 = IsTupleStrict<[1] | number[]>; // false
+```
+
+Dla `never` osobno: `[T] extends [never] ? false : ...`.
+
+`[X] extends [Y]` sprowadza się do zwykłego `X extends Y` — elementy krotki porównuje się pozycja po pozycji. Opakowanie nie zmienia wyniku przypisywalności, wyłącza tylko rozbijanie unii.
+
+---
+
+# Przypisywalność unii
+
+## Reguła
+
+**Unia po lewej stronie jest przypisywalna do celu, gdy KAŻDY jej człon jest przypisywalny.**
+
+```typescript
+[1] | number[]  extends  readonly any[]
+//   [1]      extends readonly any[]  → true
+//   number[] extends readonly any[]  → true
+//   → cała unia przechodzi
+```
+
+Intuicja od strony wartości: zmienna typu `[1] | number[]` trzyma _albo_ krotkę, _albo_ tablicę — ale cokolwiek trzyma, na pewno jest tablicą. Można ją bezpiecznie podać tam, gdzie oczekiwana jest tablica.
+
+```typescript
+declare const v: [1] | number[];
+const arr: readonly any[] = v; // OK
+v.length; // OK — .length istnieje w obu wariantach
+```
+
+## Kontrprzykład
+
+```typescript
+type R = IsTupleStrict<[1] | string>; // false
+//   [1]    extends readonly any[]  → true
+//   string extends readonly any[]  → false   ← jeden człon nie przechodzi
+//   → cała unia nie przechodzi
+```
+
+## Uwaga na kierunek
+
+Reguła „wszystkie człony" dotyczy unii po **lewej** stronie. Po **prawej** jest odwrotnie — wystarczy jeden pasujący człon:
+
+```typescript
+string          extends string | number   // true  — wystarczy trafić w jeden wariant
+string | number extends string            // false — number nie pasuje
+```
+
+## Indexed access na unii
+
+Rozkłada się po członach:
+
+```typescript
+([1] | number[])["length"]
+//   [1]["length"]      → 1
+//   number[]["length"] → number
+//   wynik: 1 | number  →  TS redukuje do  number
+```
+
+Dlatego w `IsTupleStrict<[1] | number[]>` gałąź `true` daje `number extends number` → `false`. Sensowna odpowiedź: unia krotki i tablicy nie jest krotką.
