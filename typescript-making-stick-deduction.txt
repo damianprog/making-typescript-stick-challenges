@@ -758,7 +758,7 @@ Reguła jest taka: unia jest przypisywalna do celu, gdy każdy jej człon jest p
 [1]       extends readonly any[]  // true — krotka to tablica
 number[]  extends readonly any[]  // true — tablica to tablica
 
-
+skonczone na analizowaniu alternatywnych rozwiązan i rozwiązywania problemu dodatkowego testcase
 
 
 
