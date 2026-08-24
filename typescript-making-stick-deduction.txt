@@ -760,6 +760,128 @@ number[]  extends readonly any[]  // true — tablica to tablica
 
 skonczone na analizowaniu alternatywnych rozwiązan i rozwiązywania problemu dodatkowego testcase
 
+Moje solution: 
+type IsTuple<T> = T extends readonly any[]
+  ? number extends T["length"]
+    ? false
+    : true
+  : false;
+  
+poprawne solution:
+  type IsTuple<T> = [T] extends [never]
+  ? false
+  : T extends readonly []
+    ? true
+    : T extends readonly [infer _Head, ...infer _Tail]
+      ? true
+      : false;
+
+Expect<Equal<IsTuple<[number, ...string[]]>, true>>
+
+najpierw zadajmy sobie pytanie czym jest array [number, ...string[]]
+i co czyni go innym od tych w pozostałych testcases
+
+część number rozumiem jako jeden element typu number czyli dowolny jeden number
+
+część ...string[] rozumiem oznacza że poza tym jednym elementem number
+reszta elementów w tym array jest typu string
+
+Szczerze mówiąc to nie jestem pewny w jaki sposób potraktować "..."
+bo co on spreaduje? potencjalnie nieskonczony array z elementami typu string?
+czy może on tutaj działa bardziej jak rest operator? 
+ale rest to raczej zbierało by do czegoś pozostałe elementy
+np [number, ...otherElements]
+to bym rozumiał jako zbierz elementy które występują po pierwszym elemencie, do zmiennej otherElements
+
+sprawdźmy co mój solution 
+zwraca dla IsTuple<[number, ...string[]]>
+
+mój solution zwraca false
+sprawdźmy w której gałęzi
+
+najpierw zadajemy pytanie czy T jest jakimkolwiek arrayem?
+T extends readonly any[]
+Tak, więc już wiadomo że za zwrot false odpowiada wewnętrzny warunek
+
+a jakie pytanie zadajemy w wewnętrznym warunku?
+w zasadzie to "Czy T["length"] jest number"
+czyli czy T["length"] jest zbiorem wszystkich możliwych number
+i na to pytanie odpowiadamy 
+Tak, zatem zwracamy false uznając że długość dostarczonego arraya nie jest finite
+
+sprawdzmy co TS daje dla [number, ...string[]]
+
+let strangeArrayType: [number, ...string[]]
+
+Back to claude:
+
+... w pozycji typu to rest element, nie spread wartości
+
+Najbliższa i w zasadzie dosłowna analogia to rest parameter w funkcji:
+
+function f(a: number, ...rest: string[]) {}
+type F = Parameters<typeof f>;  // [a: number, ...rest: string[]]
+
+to oznacza że resztę dostarczonych argumentów po pierwszym argumencie zbieramy do array przechowującego elementy typu string?
+Czyli zakładamy że reszta parametrów to będą same stringi?
+Tak
+
+[number, ...string[]]
+Należy czytać jako deklaracje kształtu
+pozycja 0 to number; od pozycji 1 w górę jest zero lub więcej string
+
+Wartości pasujące: [1], [1, "a"], [1, "a", "b"], … Nie pasuje: [], ["a"], [1, 2].
+
+variadic tuple: Krotka ze stałym prefiksem i otwartym ogonem.
+
+Back to moja dedukcja:
+
+a zatem odrzucenie arraya jako potencjalnej krotki nie powinno się opierać na warunku sprawdzającym czy array ma finite length bo variadic tuple nie ma finite length a jest tuple.
+
+Back to claude:
+
+skoro length nie odróżnia [number, ...string[]] od (number|string)[], to co je w ogóle odróżnia?
+
+Back to moja dedukcja:
+
+pierwszy element
+
+ale co pierwszy element? istnienie pierwszego elementu?
+
+Back to claude:
+
+Prawie. Nie typ pierwszego elementu — bo tym się nie różnią:
+
+type A = [string, ...string[]][0];  // string
+type B = string[][0];               // string
+
+Identyczne. Więc gdybyś sondował „jakiego typu jest element 0", te dwa typy byłyby dla ciebie nierozróżnialne — a pierwszy to krotka, drugi nie.
+
+Chodzi o gwarantowane istnienie. Nie „czy pierwszy element jest", tylko „czy TS wie z typu, że jest".
+
+declare const a: [number, ...string[]];
+declare const b: (number | string)[];
+
+a ma minimalną długość 1 — nie da się stworzyć wartości tego typu bez pierwszego elementu. b ma minimalną długość 0, bo [] jest poprawnym (number|string)[].
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

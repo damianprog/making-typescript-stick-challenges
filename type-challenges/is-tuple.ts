@@ -49,13 +49,26 @@ type NotEqual<X, Y> = true extends Equal<X, Y> ? false : true;
 
 // Solution suggested from master.dev:
 
-type IsTuple<T> = [T] extends [never]
-  ? false
-  : T extends readonly []
-    ? true
-    : T extends readonly [infer _Head, ...infer _Tail]
-      ? true
-      : false;
+// As a note here is first and most simple working solution
+// except for testcase Expect<Equal<IsTuple<[number, ...string[]]>, true>>
+
+type IsTuple<T> = T extends readonly any[]
+  ? number extends T["length"]
+    ? false
+    : true
+  : false;
+
+// type IsTuple<T> = [T] extends [never]
+//   ? false
+//   : T extends readonly []
+//     ? true
+//     : T extends readonly [infer _Head, ...infer _Tail]
+//       ? true
+//       : false;
+
+let strangeArrayType: [number, ...string[]];
+
+let a: IsTuple<[number, ...string[]]>;
 
 let x: IsTuple<number[]>;
 let y: []["length"];
@@ -70,12 +83,12 @@ type R1 = Distributive<string | number>; // "tak" | "nie"
 
 // Tests
 type cases = [
+  Expect<Equal<IsTuple<[number, ...string[]]>, true>>,
   Expect<Equal<IsTuple<[]>, true>>,
   Expect<Equal<IsTuple<[number]>, true>>,
   Expect<Equal<IsTuple<readonly [1]>, true>>,
   Expect<Equal<IsTuple<{ length: 1 }>, false>>,
   Expect<Equal<IsTuple<number[]>, false>>,
-  Expect<Equal<IsTuple<[number, ...string[]]>, true>>,
 ];
 
 export {};
