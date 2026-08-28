@@ -864,25 +864,43 @@ declare const b: (number | string)[];
 
 a ma minimalną długość 1 — nie da się stworzyć wartości tego typu bez pierwszego elementu. b ma minimalną długość 0, bo [] jest poprawnym (number|string)[].
 
+skonczone na analizowaniu testcase z variadic tuple
 
 
+[T] extends [never]
 
+czy mogę rozumieć tę linijkę tak że w dostarczonym array znajduje się rzecz która nie powinna się tam znaleźć?
 
+Nie, raczej chodzi o to że T nie jest valid arrayem 
+czyli że jest na przykład obiektem
 
+Czy pełni ona jeszcze jakąś funkcje?
 
+Zauważmy że w rozwiązaniu z master.dev nie ma number extends T["length"]
+a mimo to wszystkie testcases przechodzą
 
+IsTuple<number[]> zwróci false i dobrze bo tuple musi mieć określony length
+lub przynajmniej pewny jeden element jak w variadic tuple
+number[] nie ma określonej length ani określonego jednego pewnego elementu
 
+sprawdzić zatem w której gałęzi ląduje na false
 
+1. T extends readonly [infer _Head, ...infer _Tail]
+Zadajemy pytanie czy array T zawiera się w zbiorze wszystkich arrays pasujących do podanego wzorca. Żeby array pasował do wzorca musi mieć przynajmniej jeden element.
 
+T extends never ? false : ...
 
+Goły generyczny parametr jest rozbijany z uni na człony.
+A never to unia zerowa czyli unia o zero członach. Więc rozbicie jej na człony daje zero członów zatem typ uruchamia się zero razy i wynikiem nie jest true ani false tylko never.
 
+type IsNever<T> = [T] extends [never] ? true : false;
 
+opakowując parametr T w [T] wyłączamy dystrybucje i faktycznie sprawdzamy czy jego value to never
 
+Skonczone na:
 
-
-
-
-
+nie musimy już sprawdzać number extends T["length"]
+bo sonda strukturalna zajmuje się również i tym
 
 
 

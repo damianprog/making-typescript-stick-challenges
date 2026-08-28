@@ -52,19 +52,19 @@ type NotEqual<X, Y> = true extends Equal<X, Y> ? false : true;
 // As a note here is first and most simple working solution
 // except for testcase Expect<Equal<IsTuple<[number, ...string[]]>, true>>
 
-type IsTuple<T> = T extends readonly any[]
-  ? number extends T["length"]
-    ? false
-    : true
-  : false;
+// type IsTuple<T> = T extends readonly any[]
+//   ? number extends T["length"]
+//     ? false
+//     : true
+//   : false;
 
-// type IsTuple<T> = [T] extends [never]
-//   ? false
-//   : T extends readonly []
-//     ? true
-//     : T extends readonly [infer _Head, ...infer _Tail]
-//       ? true
-//       : false;
+type IsTuple<T> = [T] extends [never]
+  ? false
+  : T extends readonly []
+    ? true
+    : T extends readonly [infer _Head, ...infer _Tail]
+      ? true
+      : false;
 
 let strangeArrayType: [number, ...string[]];
 
