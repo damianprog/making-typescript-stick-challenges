@@ -899,8 +899,78 @@ opakowując parametr T w [T] wyłączamy dystrybucje i faktycznie sprawdzamy czy
 
 Skonczone na:
 
+IsTuple i typy warunkowe
+
 nie musimy już sprawdzać number extends T["length"]
 bo sonda strukturalna zajmuje się również i tym
+
+
+
+
+
+Tuple to nested object
+
+T to array stringów, w którym każdy string oznacza property na obiekcie
+wartością tej property może być albo obiekt albo U.
+
+w zasadzie to jest tak że zawsze ostatni string w dostarczonym array ma wartość U a wszystkie wcześniejsze mają wartość obiekt. Jeżeli jest jeden obiekt to traktujemy go jako ostatni zatem ma on wartość U.
+
+czyli jeżeli będziemy się w jakiś sposob "iterować" po arrayu stringów to ostatni string ma być obiektem z property o wartości U i ma on zostać zwrócony aby zostać ustawionym jako property wczesniejszego string property.
+
+Każdy string ma swój obiekt
+
+więc będziemy budować obiekt i jeśli stringów jest więcej niz 1 to z zagnieżdżonymi obiektami
+
+więc niech rekursja zwraca obiekty
+
+base warunkiem może być fakt że nie ma więcej stringów
+
+może jakoś wykorzystać extends empty array a nie że ma długość większą niz 0
+
+więc infer head, ...infer tail. i sprawdzac czy tail extends empty array
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
