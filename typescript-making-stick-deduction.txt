@@ -917,7 +917,7 @@ w zasadzie to jest tak że zawsze ostatni string w dostarczonym array ma wartoś
 
 czyli jeżeli będziemy się w jakiś sposob "iterować" po arrayu stringów to ostatni string ma być obiektem z property o wartości U i ma on zostać zwrócony aby zostać ustawionym jako property wczesniejszego string property.
 
-Każdy string ma swój obiekt
+Każdy string ma swój obiekt, z wyjątkiem ostatniego bo ostatni ma U
 
 więc będziemy budować obiekt i jeśli stringów jest więcej niz 1 to z zagnieżdżonymi obiektami
 
@@ -929,22 +929,37 @@ może jakoś wykorzystać extends empty array a nie że ma długość większą 
 
 więc infer head, ...infer tail. i sprawdzac czy tail extends empty array
 
+a jak sprawdzić czy coś jest empty array?
+w ten sposób?: T extends readonly [] ?
+bo T extends readonly any[] oznacza array o jakichkolwiek wartościach i o jakiejkolwiek długości
+to może T extends [never] czyli że wewnątrz array znajduje się zbiór 0 wartości
+Nie bo [never] ma jedną wartośc typu never. Nie da się takiego typu skonstruować.
+
+w ten sposób?: T extends readonly [] ?
+Tak
+
+jeżeli T extends [infer head, ...infer tail] ? 
+to sprawdzamy czy tail to empty array
+jeżeli tak to zwracamy U a jeżeli nie to zwracamy obiekt wewnątrz którego mamy 
+property head a value to reskursywne wywołanie tej funkcji <tail, U>
+
+
+type TupleToNestedObject<T extends string[], U> = T extends [
+  infer head,
+  ...infer tail,
+]
+  ? tail extends readonly []
+    ? Record<head, U>
+    : Record<head, TupleToNestedObject<tail, U>>
+  : U;
 
 
 
+jest error Type 'head' does not satisfy the constraint 'string | number | symbol'.
+ale przecież powiedziane jest że T extends string[] 
 
-
-
-
-
-
-
-
-
-
-
-
-
+Skonczone na:
+Pamiętać aby pogadać o mojej luce przy mapped types czy może jeszcze jakiś innych związanych z tym challange!
 
 
 
