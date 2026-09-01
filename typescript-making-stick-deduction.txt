@@ -961,6 +961,21 @@ ale przecież powiedziane jest że T extends string[]
 Skonczone na:
 Pamiętać aby pogadać o mojej luce przy mapped types czy może jeszcze jakiś innych związanych z tym challange!
 
+type TupleToNestedObject<T extends string[], U> = T extends [
+  infer head extends string,
+  ...infer tail extends string[],
+]
+  ? tail extends readonly []
+    ? Record<head, U>
+    : Record<head, TupleToNestedObject<tail, U>>
+  : U;
+
+T extends [
+  infer head extends string,
+  ...infer tail extends string[],
+]
+
+chodzi o to że pusty array nie przejdzie tego warunku?
 
 
 
@@ -973,10 +988,24 @@ Pamiętać aby pogadać o mojej luce przy mapped types czy może jeszcze jakiś 
 
 
 
+IndexOf challenge
 
+Chodzi o to że mając array T należy znaleźć index pod którym leży w tym arrayu value U
 
+Testy są oparte tylko na numbers
 
+odcinać head od tail i sprawdzać czy head === U
+jeśli by się dało jakoś zliczać odcięcia to ilość odcięć - 1 wskazywała by na index U w array T
 
+T["length"] można by było wykorzystać
+
+odcinać head co raz większe i zwrócić head["length"] - 1 wtedy kiedy nowo odcięty element jest U? Czy coś w ten deseń?
+
+kiedy kolejny element miałby być U to zwracamy length?
+
+wydaje mi się że rozwiązanie musi się opierać na wykorzystaniu length
+
+nie da sie na poziomie typu zrobić po prostu -1
 
 
 
