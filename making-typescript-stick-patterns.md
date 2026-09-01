@@ -1059,3 +1059,59 @@ Rozkłada się po członach:
 ```
 
 Dlatego w `IsTupleStrict<[1] | number[]>` gałąź `true` daje `number extends number` → `false`. Sensowna odpowiedź: unia krotki i tablicy nie jest krotką.
+
+## TupleToNestedObject (type-challenges 3188)
+
+```typescript
+type TupleToNestedObject<T, U> = T extends [
+  infer head extends string,
+  ...infer tail,
+]
+  ? Record<head, TupleToNestedObject<tail, U>>
+  : U;
+```
+
+### Sprawdzanie pustej tablicy
+
+`T extends readonly []` — to jest właściwy sposób.
+
+- `readonly` po prawej łapie oba warianty; samo `[]` przepuściłoby `readonly []` jako `false`
+- guard `T extends readonly any[]` niepotrzebny, bo `{ length: 0 }` nie jest przypisywalne do krotki (inaczej niż przy podejściu przez `T["length"]`)
+- **`[never]` to nie pusta tablica** — to krotka o `length: 1` z elementem typu `never`. Niezamieszkana, ale nie pusta. Liczba elementów siedzi w `length` i w kształcie zapisu, nigdy w typie elementu
+- `never[]` w runtime zawsze będzie pusta, ale `never[]["length"]` to `number`, więc `IsEmptyArray<never[]>` → `false`
+
+### Typ jako klucz obiektu
+
+`{ head: U }` tworzy property o **dosłownej nazwie** `head`. Żeby użyć typu jako klucza, potrzebny mapped type — dokładnie to, czym jest `Record`:
+
+```typescript
+type Record<K extends keyof any, T> = { [P in K]: T };
+```
+
+### infer ma własny bound
+
+`infer head` deklaruje **świeżą** zmienną typu z bounddem `unknown`. Constraint z `T extends string[]` mówi coś o `T` i **nie propaguje się** do zmiennych ze wzorca — stąd błąd _„Type 'head' does not satisfy the constraint 'string | number | symbol'"_.
+
+Kluczowe: TS sprawdza ciało typu **raz, generycznie**, zanim pozna konkretne `T`. To, że przy `T = ["a"]` head wyjdzie `"a"`, jest prawdą dopiero przy instancjonowaniu.
+
+Rozwiązanie (TS 4.8+): `infer head extends string`.
+
+Ta składnia działa też jako **filtr** — jeśli dopasowanie się uda, ale wywnioskowany typ nie spełni constraintu, cała gałąź daje `false` i leci do `:`. Efekt uboczny w template literalach: `infer N extends number` wymusza inferencję literału liczbowego zamiast `string`.
+
+### Base case sam się załatwia
+
+Pierwsza wersja miała nadmiarowy warunek:
+
+```typescript
+? tail extends readonly []
+  ? Record<head, U>
+  : Record<head, TupleToNestedObject<tail, U>>
+```
+
+Zbędny, bo `TupleToNestedObject<[], U>` nie dopasuje się do wzorca `[infer head, ...infer tail]` i wpadnie w gałąź `:`, zwracając `U`. Rekursja sama dochodzi do tego samego wyniku.
+
+**Wzorzec:** zanim dopiszesz jawny warunek na ostatni element, sprawdź, co zwróci wywołanie rekurencyjne na pustej krotce. Zwykle base case już to obsługuje.
+
+### Constraint na parametrze pociąga constrainty w łańcuchu
+
+Przy `T extends string[]` wywołanie `TupleToNestedObject<tail, U>` wymagało `...infer tail extends string[]`. Po usunięciu constraintu z `T` obie adnotacje stały się zbędne — `infer head extends string` sam filtruje wejścia.

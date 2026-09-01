@@ -18,16 +18,16 @@
 
 /* _____________ Your Code Here _____________ */
 
-type TupleToNestedObject<T extends string[], U> = T extends [
+type TupleToNestedObject<T, U> = T extends [
   infer head extends string,
   ...infer tail,
 ]
-  ? tail extends readonly []
-    ? Record<head, U>
-    : Record<head, TupleToNestedObject<tail, U>>
+  ? Record<head, TupleToNestedObject<tail, U>>
   : U;
 
-let x: TupleToNestedObject<["a"], string>;
+// let x: TupleToNestedObject<["a"], string>;
+// let x: TupleToNestedObject<["a", "b", "c"], boolean>;
+// let x: TupleToNestedObject<["c"], boolean>;
 /* _____________ Test Cases _____________ */
 import type { Equal, Expect } from "@type-challenges/utils";
 
