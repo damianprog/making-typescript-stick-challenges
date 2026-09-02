@@ -1007,6 +1007,60 @@ wydaje mi się że rozwiązanie musi się opierać na wykorzystaniu length
 
 nie da sie na poziomie typu zrobić po prostu -1
 
+T extends [
+    infer head, ...infer tail
+]
+
+wiemy jak odciąć pierwszy element od reszty
+
+a gdyby odciąć ostatni element od reszty ale po co?
+
+odcinać ostatni element i sprawdzać czym jest ostatni element
+jeśli ostatni element to U to zwrócić head["length"]
+
+T extends [
+    ...infer head, infer tail
+]
+
+type IndexOf<T, U> = T extends [
+    ...infer head, infer tail
+] ? tail extends U ? head["length"] : IndexOf<head, U>
+
+w takim przypadku któreś z wywołań IndexOf<head, U> zwróci length
+
+czyli IndexOf może zwrócić albo array albo length
+
+a może jakiś typ pomocniczy?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
