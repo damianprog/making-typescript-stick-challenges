@@ -1042,28 +1042,98 @@ a może jakiś typ pomocniczy?
 
 
 
+tworzymy type który przyjmuje type parameter T
 
+type parameter T to typeof methods
+a methods to:
 
+const methods = {
+  add(a: number, b: number): number {
+    return a + b;
+  },
+  subtract(a: number, b: number): number {
+    return a - b;
+  },
+};
 
+const asyncMethods: WrapForPenpal<typeof methods>
 
+i oczekujemy od WrapForPenpal że 
+let addPromise = asyncMethods.add(1, 2);
 
+będzie typu Promise<number>
 
+czyli we WrapForPenpal w otrzymanym typie przekształcimy typ zwracany z add z tego co jest czyli number do Promise<number>
 
+skoro interesuje nas zwracany typ to może skorzystamy z => infer R
 
+i przekształcimy R na Promise<R>
 
+dla każdej z metod na methods
 
+skoro musimy się przeiterować po metodach z methods to może mapped type?
 
+[Property in keyof T]: T[Property]
 
+Property to będzie np. add
+T[Property] to będzie typ zwracany z tej property?
+czyli typ zwracany z add?
 
+Sprawdźmy!
 
+export type WrapForPenpal<T> = {[Property in keyof T]: T[Property]};
 
+let addPromise = asyncMethods.add(1, 2);
 
+let addPromise: number
 
+export type WrapForPenpal<T> = {
+  [Property in keyof T]: Promise<T[Property]>;
+};
 
+daje let addPromise: any
 
+czyli dobraliśmy się do typu zwracanego z poszczególnych metod na T
 
+jak przerobić ten typ zwracany na Promise<typ zwracany>?
 
+w powyższym rozwiązaniu przemapowaliśmy values które były funkcjami zwracającymi values o jakichś typach na same typy? 
 
+export type WrapForPenpal<T> = { [Property in keyof T]: () => T[Property] };
+
+teraz let addPromise: (a: number, b: number) => number
+
+i tak powinno być 
+
+czyli 
+[Property in keyof T]: T[Property]
+
+odnosi się tylko do typu zwracanego przez to co jest pod tym property a nie do tego co jest pod tym property?
+czyli w przypadku:
+add(a: number, b: number): number {
+    return a + b;
+  },
+
+T[Property] odnosi się tylko do number?
+
+let addPromise = asyncMethods.add(1, 2);
+expectType<Promise<number>>(addPromise);
+
+Argument of type '(a: number, b: number) => number' is not assignable to parameter of type 'Promise<number>'.ts(2345)
+let addPromise: (a: number, b: number) => number
+
+ale addPromise nie ma być typem funkcji tylko ma byc Promise<number>
+
+może conditional type da sie wykorzystać do rozwiązania?
+
+przykładowy, bezsensowny conditional ale działający składniowo
+
+export type WrapForPenpal<T> = {
+  [Property in keyof T]: T[Property] extends "c" ? true : false;
+};
+
+Skonczone na, dostac wskazówkę od claude bo utknąłem chat:
+WrapForPenpal type challenge
 
 
 
