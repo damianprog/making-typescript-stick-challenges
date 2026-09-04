@@ -1115,3 +1115,25 @@ Zbędny, bo `TupleToNestedObject<[], U>` nie dopasuje się do wzorca `[infer hea
 ### Constraint na parametrze pociąga constrainty w łańcuchu
 
 Przy `T extends string[]` wywołanie `TupleToNestedObject<tail, U>` wymagało `...infer tail extends string[]`. Po usunięciu constraintu z `T` obie adnotacje stały się zbędne — `infer head extends string` sam filtruje wejścia.
+
+## Mapped type + conditional + infer: opakowanie wartości zwracanych metod
+
+**Zadanie:** `WrapForPenpal<T>` — zamień każdą metodę `(...) => R` na `(...) => Promise<R>`.
+
+```ts
+export type WrapForPenpal<T> = {
+  [P in keyof T]: T[P] extends (...args: infer Args) => infer R
+    ? (...args: Args) => Promise<R>
+    : T[P];
+};
+```
+
+**Pułapka diagnostyczna:** `let x = obj.method(1, 2)` — hover na `x` pokazuje typ **wyniku wywołania**, nie typ property. Żeby zobaczyć, czym naprawdę jest `T[P]`, hoveruj `obj.method` **bez nawiasów**. Pomylenie tych dwóch rzeczy prowadzi do fałszywego wniosku „`T[P]` to typ zwracany".
+
+**Zasada:** `T[P]` w mapped type to zawsze cała wartość property. Jeśli to funkcja — dostajesz cały jej typ, z parametrami.
+
+**Dwa `infer`, nie jedno:** przy przebudowie funkcji trzeba złapać _obie_ strony strzałki. `infer R` na typ zwracany, `...args: infer Args` na krotkę parametrów. Zostawienie `(...args: any[])` w gałęzi `true` przechodzi testy, ale wywala typowanie argumentów.
+
+**Składnia:** w typie funkcji parametr to zawsze `nazwa: typ`. `(Args) => R` to parametr _o nazwie_ `Args`, nie użycie zmiennej typu. Krotkę parametrów rozwija się przez `...args: Args`.
+
+**Metoda, która odblokowała:** rozpisać ręcznie typ docelowy bez generyków (`add: (a: number, b: number) => Promise<number>`), porównać z oryginałem i zobaczyć, co dokładnie się zmienia — dopiero potem uogólniać.

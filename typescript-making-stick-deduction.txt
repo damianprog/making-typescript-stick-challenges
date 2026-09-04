@@ -1136,6 +1136,32 @@ Skonczone na, dostac wskazówkę od claude bo utknąłem chat:
 WrapForPenpal type challenge
 
 
+do rozwiązania potrzebne będą mapped type oraz conditional infer
+
+export type WrapForPenpal<T> = {
+  [Property in keyof T]: T[Property];
+};
+
+Pytanie 1.
+let addPromise = asyncMethods.add;
+let addPromise: (a: number, b: number) => number
+
+czyli typem addPromise jest funkcja zwracająca wartosc typu number
+
+Pytanie 2.
+let addPromise = asyncMethods.add(1, 2);
+let addPromise: number
+
+czyli typ addPromise jest typem zwracanym przez add
+
+Dokładnie. I stąd wniosek, który obala Twoją wcześniejszą hipotezę: T[Property] to cała funkcja (a: number, b: number) => number, a nie number. Wcześniej let addPromise: number zobaczyłeś dlatego, że wywołałeś funkcję — hover pokazywał wynik wywołania, nie property.
+
+
+Nazwa luki: detal. Narzędzia i szkielet miałeś od początku — poległeś na jednym błędnym odczycie hovera (addPromise pokazywał typ wyniku wywołania, a Ty czytałeś to jako typ property) i to wysłało całą dedukcję w bok.
+
+
+
+
 
 
 

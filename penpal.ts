@@ -1,8 +1,16 @@
 import { expectType } from "tsd";
 
 // IMPLEMENT THIS TYPE
+// export type WrapForPenpal<T> = {
+//   [Property in keyof T]: T[Property] extends (...rest: any[]) => infer R
+//     ? R
+//     : never;
+// };
+
 export type WrapForPenpal<T> = {
-  [Property in keyof T]: Promise<T[Property]>;
+  [Property in keyof T]: T[Property] extends (...args: infer Args) => infer R
+    ? (...args: Args) => Promise<R>
+    : T[Property];
 };
 
 /**
@@ -17,6 +25,11 @@ const methods = {
   },
 };
 const asyncMethods: WrapForPenpal<typeof methods> = {} as any;
+
+type Target = {
+  add: (a: number, b: number) => Promise<number>;
+  subtract: (a: number, b: number) => Promise<number>;
+};
 
 let addPromise = asyncMethods.add(1, 2);
 expectType<Promise<number>>(addPromise);
